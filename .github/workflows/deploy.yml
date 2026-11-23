@@ -1,0 +1,125 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  BACKEND_SERVICE: blog-backend
+  FRONTEND_SERVICE: blog-frontend
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  frontend-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  deploy:
+    needs: [backend-ci, frontend-ci]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/blog-backend:${{ github.sha }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/blog-backend:latest
+
+      - name: Deploy backend
+        id: deploy-backend
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        shell: bash
+        run: |
+          test -n "$GCP_PROJECT_ID" || { echo "GCP_PROJECT_ID is required"; exit 1; }
+          test -n "$MONGODB_URI" || { echo "MONGODB_URI is required"; exit 1; }
+          gcloud config set project "$GCP_PROJECT_ID"
+          gcloud run deploy "$BACKEND_SERVICE" \
+            --image "docker.io/${{ secrets.DOCKERHUB_USERNAME }}/blog-backend:${{ github.sha }}" \
+            --region "$GCP_REGION" \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 4000 \
+            --set-env-vars="DATABASE_URL=${MONGODB_URI},CORS_ORIGIN=*"
+          BACKEND_URL="$(gcloud run services describe "$BACKEND_SERVICE" --region "$GCP_REGION" --format='value(status.url)')"
+          test -n "$BACKEND_URL" || { echo "Could not obtain backend URL"; exit 1; }
+          echo "url=$BACKEND_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          build-args: |
+            VITE_API_URL=${{ steps.deploy-backend.outputs.url }}
+          tags: |
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/blog-frontend:${{ github.sha }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/blog-frontend:latest
+
+      - name: Deploy frontend
+        shell: bash
+        run: |
+          gcloud run deploy "$FRONTEND_SERVICE" \
+            --image "docker.io/${{ secrets.DOCKERHUB_USERNAME }}/blog-frontend:${{ github.sha }}" \
+            --region "$GCP_REGION" \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080
+          FRONTEND_URL="$(gcloud run services describe "$FRONTEND_SERVICE" --region "$GCP_REGION" --format='value(status.url)')"
+          test -n "$FRONTEND_URL" || { echo "Could not obtain frontend URL"; exit 1; }
+          echo "FRONTEND_URL=$FRONTEND_URL" >> "$GITHUB_ENV"
+
+      - name: Restrict backend CORS and verify deployment
+        env:
+          BACKEND_URL: ${{ steps.deploy-backend.outputs.url }}
+        shell: bash
+        run: |
+          gcloud run services update "$BACKEND_SERVICE" \
+            --region "$GCP_REGION" \
+            --update-env-vars="CORS_ORIGIN=${FRONTEND_URL}"
+          curl --fail --retry 5 --retry-delay 5 "$BACKEND_URL/health"
+          curl --fail --retry 5 --retry-delay 5 "$FRONTEND_URL/"
+          echo "Frontend: $FRONTEND_URL"
+          echo "Backend: $BACKEND_URL"
