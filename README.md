@@ -1,4 +1,6 @@
-# Fieldnotes — MERN Blog (CSE 3395 Assignment 4)
+# Mern-Stack-Blog — Fieldnotes (CSE 3395 Assignment 4)
+
+Containerization, Cloud Deployment and CI/CD Automation of a MERN Stack Blog Application
 
 ## 1. Assignment introduction
 
@@ -235,7 +237,7 @@ After Docker is running, verify local use by opening `http://localhost:8080`, pu
 
 ## 14. Submission details to fill after deployment
 
-- GitHub repository: **not created or pushed yet**
+- GitHub repository: [Mern-Stack-Blog](https://github.com/Komal-Kumari789/Mern-Stack-Blog) (remote configured; assignment commit not pushed yet)
 - Docker Hub backend repository: **not created yet**
 - Docker Hub frontend repository: **not created yet**
 - Cloud Run frontend URL: **not deployed**
