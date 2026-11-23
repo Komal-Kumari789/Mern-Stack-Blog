@@ -220,12 +220,14 @@ Completed locally:
 - Backend Jest suite: **3 tests passed** (list posts, create/validate posts, health check).
 - Frontend production build: **passed** with Vite.
 - `docker compose config`: **passed**; the three services, networking, dependencies, health checks, and persistent volume resolve.
+- GitHub Actions backend CI and frontend CI: **passed** for commit `1e7b447`.
+- GitHub Actions deploy workflow: **attempted but failed at Docker Hub login** because `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are not configured. No images were pushed and no Cloud Run deployment occurred. See the [workflow run](https://github.com/Komal-Kumari789/Mern-Stack-Blog/actions/runs/45254403394).
 
 Not verified yet:
 
 - Docker image builds and running containers: Docker Desktop's engine was unavailable when checked (`docker_engine` pipe not found).
 - End-to-end browser/database persistence: requires starting Docker Desktop and running Compose.
-- Atlas, Docker Hub, GitHub Actions, and Cloud Run: require accounts, credentials, and deployment actions. No deployment URLs or successful remote runs are claimed.
+- MongoDB Atlas, Docker Hub publishing, and Cloud Run: require account setup, credentials, and deployment actions. No deployment URLs or successful cloud deployments are claimed.
 
 After Docker is running, verify local use by opening `http://localhost:8080`, publishing a post, refreshing the page, and checking that it remains. The application stores local Compose data in the persistent `mongodb_data` volume.
 
@@ -233,11 +235,11 @@ After Docker is running, verify local use by opening `http://localhost:8080`, pu
 
 - **Empty starting workspace:** there was no existing app to preserve, so the app and project setup had to be created for the assignment.
 - **Container runtime unavailable during this setup:** Docker Compose configuration validation worked, but image builds and runtime checks must be repeated after Docker Desktop is started.
-- **Credentials and accounts are user-specific:** Atlas, Docker Hub, GitHub, and Google Cloud values are placeholders until the student creates accounts and configures secrets. This avoids fabricated URLs, deployment results, and credentials.
+- **Credentials and accounts are user-specific:** Atlas, Docker Hub, and Google Cloud values are placeholders until the student creates accounts and configures secrets. The first automated deploy stopped at Docker Hub authentication; no credentials or deployment results were fabricated.
 
 ## 14. Submission details to fill after deployment
 
-- GitHub repository: [Mern-Stack-Blog](https://github.com/Komal-Kumari789/Mern-Stack-Blog) (remote configured; assignment commit not pushed yet)
+- GitHub repository: [Mern-Stack-Blog](https://github.com/Komal-Kumari789/Mern-Stack-Blog) (source pushed; CI passed)
 - Docker Hub backend repository: **not created yet**
 - Docker Hub frontend repository: **not created yet**
 - Cloud Run frontend URL: **not deployed**
