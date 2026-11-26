@@ -90,10 +90,10 @@ Example request body:
 Install/start Docker Desktop first, then open PowerShell in the project root:
 
 ```powershell
-docker compose up --build
+docker compose up -d --build
 ```
 
-This builds the two application images and starts MongoDB and the applications. Open <http://localhost:8080>. The API is also available at <http://localhost:4000/health>. In another terminal:
+This builds the two application images and starts MongoDB and the applications in the background. Open <http://localhost:8080>. The API is also available at <http://localhost:4000/health>. Check the service status and follow logs with:
 
 ```powershell
 docker compose ps
@@ -215,18 +215,20 @@ To confirm CI/CD, inspect the repository's **Actions** tab after pushing. The de
 
 ## 12. Testing and verification record
 
-Completed locally:
+Verified locally:
 
 - Backend Jest suite: **3 tests passed** (list posts, create/validate posts, health check).
 - Frontend production build: **passed** with Vite.
-- `docker compose config`: **passed**; the three services, networking, dependencies, health checks, and persistent volume resolve.
+- `docker compose config --quiet`: **passed**; the three services, networking, dependencies, health checks, and persistent volume resolve.
+- `docker compose up -d --build`: **passed**; all three services started, with MongoDB and the backend healthy.
+- `docker compose ps`: **passed**; all three services are running.
+- Backend `/health` and frontend-proxied `/api/posts`: **passed**; the frontend reaches the backend and the backend can query MongoDB.
 - GitHub Actions backend CI and frontend CI: **passed** for commit `1e7b447`.
 - GitHub Actions deploy workflow: **attempted but failed at Docker Hub login** because `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are not configured. No images were pushed and no Cloud Run deployment occurred. See the [workflow run](https://github.com/Komal-Kumari789/Mern-Stack-Blog/actions/runs/45254403394).
 
 Not verified yet:
 
-- Docker image builds and running containers: Docker Desktop's engine was unavailable when checked (`docker_engine` pipe not found).
-- End-to-end browser/database persistence: requires starting Docker Desktop and running Compose.
+- Browser UI rendering and persistence after creating a post: verify manually at <http://localhost:8080>.
 - MongoDB Atlas, Docker Hub publishing, and Cloud Run: require account setup, credentials, and deployment actions. No deployment URLs or successful cloud deployments are claimed.
 
 After Docker is running, verify local use by opening `http://localhost:8080`, publishing a post, refreshing the page, and checking that it remains. The application stores local Compose data in the persistent `mongodb_data` volume.
@@ -234,7 +236,7 @@ After Docker is running, verify local use by opening `http://localhost:8080`, pu
 ## 13. Challenges and solutions
 
 - **Empty starting workspace:** there was no existing app to preserve, so the app and project setup had to be created for the assignment.
-- **Container runtime unavailable during this setup:** Docker Compose configuration validation worked, but image builds and runtime checks must be repeated after Docker Desktop is started.
+- **Container runtime availability:** the Docker Desktop Linux engine was unavailable when the original error occurred. It is now responding; the Compose build, service startup, health checks, and API/database connectivity have been verified.
 - **Credentials and accounts are user-specific:** Atlas, Docker Hub, and Google Cloud values are placeholders until the student creates accounts and configures secrets. The first automated deploy stopped at Docker Hub authentication; no credentials or deployment results were fabricated.
 
 ## 14. Submission details to fill after deployment

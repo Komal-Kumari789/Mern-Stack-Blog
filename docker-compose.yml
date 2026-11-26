@@ -18,7 +18,7 @@ services:
     environment:
       PORT: "4000"
       DATABASE_URL: ${DATABASE_URL:-mongodb://mongodb:27017/blog}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080}
     ports:
       - "4000:4000"
     depends_on:
@@ -35,7 +35,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: /api
+        VITE_API_URL: ""
     restart: unless-stopped
     ports:
       - "8080:8080"
